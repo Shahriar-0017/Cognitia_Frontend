@@ -81,14 +81,11 @@ export default function ModelTestPage() {
 
       const params = new URLSearchParams({
         search: searchQuery,
-        subject: selectedSubject,
-        difficulty: selectedDifficulty,
-        sort: sortBy,
-        page: "1",
-        limit: "20",
+        subjects: selectedSubject !== "all" ? selectedSubject : "",
+        difficulty: selectedDifficulty !== "all" ? selectedDifficulty : "",
       })
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/model-tests?${params}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/model-test?${params}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -96,11 +93,18 @@ export default function ModelTestPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch tests")
+        throw new Error(`Failed to fetch tests: ${response.statusText}`)
       }
 
       const data = await response.json()
-      setTests(data.tests || [])
+
+      // Ensure the response contains the expected structure
+      if (data && Array.isArray(data.modelTests)) {
+        setTests(data.modelTests)
+      } else {
+        console.error("Unexpected response structure:", data)
+        setTests([]) // Reset tests if the structure is unexpected
+      }
     } catch (error) {
       console.error("Error fetching tests:", error)
       toast({
@@ -118,7 +122,7 @@ export default function ModelTestPage() {
     try {
       const token = localStorage.getItem("token")
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/model-tests/attempts`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/model-test/recent-attempts`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -126,13 +130,28 @@ export default function ModelTestPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch attempts")
+        // Don't throw error for 404, just log it and continue with empty array
+        if (response.status === 404) {
+          console.log("No recent attempts found")
+          setUserAttempts([])
+          return
+        }
+        throw new Error(`Failed to fetch attempts: ${response.statusText}`)
       }
 
       const data = await response.json()
-      setUserAttempts(data.attempts || [])
+
+      // Ensure the response contains the expected structure
+      if (data && Array.isArray(data.attempts)) {
+        setUserAttempts(data.attempts)
+      } else {
+        console.error("Unexpected response structure:", data)
+        setUserAttempts([]) // Reset attempts if the structure is unexpected
+      }
     } catch (error) {
       console.error("Error fetching attempts:", error)
+      // Don't show error toast for attempts, just set empty array
+      setUserAttempts([])
     }
   }
 
@@ -145,13 +164,41 @@ export default function ModelTestPage() {
 
     fetchTests()
     fetchUserAttempts()
-  }, [router, searchQuery, selectedSubject, selectedDifficulty, sortBy])
+  }, [router, searchQuery, selectedSubject, selectedDifficulty])
 
   // Get all unique subjects
   const allSubjects = Array.from(new Set(tests.flatMap((test) => test.subjects)))
 
-  const handleStartTest = (testId: string) => {
-    router.push(`/model-test/${testId}`)
+  const handleStartTest = async (testId: string) => {
+    try {
+      const token = localStorage.getItem("token")
+      
+      // First check if there's an existing in-progress attempt
+      const existingAttemptResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/model-test/${testId}/attempts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      
+      if (existingAttemptResponse.ok) {
+        const attemptsData = await existingAttemptResponse.json()
+        const inProgressAttempt = attemptsData.attempts?.find((attempt: TestAttempt) => attempt.status === "in-progress")
+        
+        if (inProgressAttempt) {
+          // Resume existing attempt
+          router.push(`/model-test/${testId}?resumeAttempt=${inProgressAttempt.id}`)
+          return
+        }
+      }
+      
+      // No in-progress attempt found, start new test
+      router.push(`/model-test/${testId}`)
+    } catch (error) {
+      console.error("Error checking for existing attempts:", error)
+      // If there's an error, proceed with starting new test
+      router.push(`/model-test/${testId}`)
+    }
   }
 
   const getDifficultyColor = (difficulty: string) => {
@@ -628,3 +675,4 @@ export default function ModelTestPage() {
     </div>
   )
 }
+
