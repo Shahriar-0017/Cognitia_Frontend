@@ -4,18 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { NotificationDropdown } from "@/components/notification-dropdown"
-import { BookOpen, Brain, Home, MessageSquare, Settings, Trophy, User, Menu, X, Target } from "lucide-react"
-import { CURRENT_USER } from "@/lib/mock-data"
+import { BookOpen, Brain, Home, MessageSquare, Trophy, User, Menu, X, Target } from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -24,6 +14,7 @@ const navigation = [
   { name: "Model Test", href: "/model-test", icon: Brain },
   { name: "Contests", href: "/contests", icon: Trophy },
   { name: "Study Plan", href: "/study-plan", icon: Target },
+  { name: "Profile", href: "/profile", icon: User },
 ]
 
 export function Navbar() {
@@ -72,45 +63,6 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {/* Notifications */}
             <NotificationDropdown />
-
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={CURRENT_USER.avatar || "/placeholder.svg"} alt={CURRENT_USER.name} />
-                    <AvatarFallback className="bg-purple-500 text-white text-sm">
-                      {CURRENT_USER.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{CURRENT_USER.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{CURRENT_USER.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {/* Mobile menu button */}
             <div className="md:hidden">
